@@ -49,7 +49,6 @@ import com.google.common.collect.ImmutableMap;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.alts.ComputeEngineChannelBuilder;
-import io.grpc.internal.JsonParser;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
@@ -241,7 +240,7 @@ public final class InstantiatingGrpcChannelProvider implements TransportChannelP
     String serviceAddress = endpoint.substring(0, colon);
 
     ManagedChannelBuilder builder;
-    System.out.println("=== creds: " + credentials);
+
     // TODO(weiranf): Add a new API in ComputeEngineCredentials to check whether it's using default
     // service account.
     if (isDirectPathEnabled(serviceAddress) && credentials instanceof ComputeEngineCredentials) {
@@ -252,10 +251,6 @@ public final class InstantiatingGrpcChannelProvider implements TransportChannelP
       builder.keepAliveTimeout(DIRECT_PATH_KEEP_ALIVE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
       builder.defaultServiceConfig(directPathServiceConfig);
     } else {
-      System.out.println(
-          "Directopath is not enabled. is Addr direct path enabled? "
-              + isDirectPathEnabled(serviceAddress) + " serviceAddress: " + serviceAddress
-              + ", credential type: " + credentials.getClass().getName());
       builder = ManagedChannelBuilder.forAddress(serviceAddress, port);
     }
     builder
@@ -602,96 +597,16 @@ public final class InstantiatingGrpcChannelProvider implements TransportChannelP
     // subchannels.
     // See the service config proto definition for more details:
     // https://github.com/grpc/grpc-proto/blob/master/grpc/service_config/service_config.proto
-    if (!"true".equals(System.getenv("USE_RLS"))) {
-      ImmutableMap<String, Object> pickFirstStrategy =
-          ImmutableMap.<String, Object>of("pick_first", ImmutableMap.of());
+    ImmutableMap<String, Object> pickFirstStrategy =
+        ImmutableMap.<String, Object>of("pick_first", ImmutableMap.of());
 
-      ImmutableMap<String, Object> childPolicy =
-          ImmutableMap.<String, Object>of("childPolicy", ImmutableList.of(pickFirstStrategy));
+    ImmutableMap<String, Object> childPolicy =
+        ImmutableMap.<String, Object>of("childPolicy", ImmutableList.of(pickFirstStrategy));
 
-      ImmutableMap<String, Object> grpcLbPolicy =
-          ImmutableMap.<String, Object>of("grpclb", childPolicy);
+    ImmutableMap<String, Object> grpcLbPolicy =
+        ImmutableMap.<String, Object>of("grpclb", childPolicy);
 
-      return ImmutableMap.<String, Object>of("loadBalancingConfig", ImmutableList.of(grpcLbPolicy));
-    } else {
-      System.out.println("Using rls directpath config");
-      try {
-        return ImmutableMap.copyOf(getRlsServiceConfig());
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static Map<String, Object> getRlsServiceConfig() throws IOException {
-    String rlsConfigJson = getRlsConfigJsonStr();
-    String grpclbJson = "{\"grpclb\": {\"childPolicy\": [{\"pick_first\": {}}]}}";
-    String serviceConfig = "{"
-        + "\"loadBalancingConfig\": [{"
-        + "    \"rls-experimental\": {"
-        + "      \"routeLookupConfig\": " + rlsConfigJson + ", "
-        + "      \"childPolicy\": [" + grpclbJson + "],"
-        + "      \"childPolicyConfigTargetFieldName\": \"serviceName\""
-        + "      }"
-        + "  }]"
-        + "}";
-    return (Map<String, Object>) JsonParser.parse(serviceConfig);
-  }
-
-  private static String getRlsConfigJsonStr() {
-    return "{\n"
-          + "  \"grpcKeyBuilders\": [\n"
-          + "    {\n"
-          + "      \"names\": [\n"
-          + "        {\n"
-          + "          \"service\": \"grpc.lookup.v1.BackendService\",\n"
-          + "          \"method\": \"Echo\"\n"
-          + "        }\n"
-          + "      ],\n"
-          + "      \"headers\": [\n"
-          + "        {\n"
-          + "          \"key\": \"user\","
-          + "          \"names\": [\"User\", \"Parent\"],\n"
-          + "          \"optional\": true\n"
-          + "        },\n"
-          + "        {\n"
-          + "          \"key\": \"id\","
-          + "          \"names\": [\"X-Google-Id\"],\n"
-          + "          \"optional\": true\n"
-          + "        }\n"
-          + "      ]\n"
-          + "    },\n"
-          + "    {\n"
-          + "      \"names\": [\n"
-          + "        {\n"
-          + "          \"service\": \"grpc.lookup.v1.BackendService\",\n"
-          + "          \"method\": \"*\"\n"
-          + "        }\n"
-          + "      ],\n"
-          + "      \"headers\": [\n"
-          + "        {\n"
-          + "          \"key\": \"user\","
-          + "          \"names\": [\"User\", \"Parent\"],\n"
-          + "          \"optional\": true\n"
-          + "        },\n"
-          + "        {\n"
-          + "          \"key\": \"password\","
-          + "          \"names\": [\"Password\"],\n"
-          + "          \"optional\": true\n"
-          + "        }\n"
-          + "      ]\n"
-          + "    }\n"
-          + "  ],\n"
-          + "  \"lookupService\": \"test-bigtablerls.sandbox.googleapis.com\",\n"
-          + "  \"lookupServiceTimeout\": 2,\n"
-          + "  \"maxAge\": 300,\n"
-          + "  \"staleAge\": 240,\n"
-          + "  \"validTargets\": [\"test-bigtable.sandbox.googleapis.com\", \"testdirectpath-bigtable.sandbox.googleapis.com\"],"
-          + "  \"cacheSizeBytes\": 1000,\n"
-          + "  \"defaultTarget\": \"defaultTarget\",\n"
-          + "  \"requestProcessingStrategy\": \"SYNC_LOOKUP_DEFAULT_TARGET_ON_ERROR\"\n"
-          + "}";
+    return ImmutableMap.<String, Object>of("loadBalancingConfig", ImmutableList.of(grpcLbPolicy));
   }
 
   private static void validateEndpoint(String endpoint) {

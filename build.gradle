@@ -131,7 +131,6 @@ subprojects {
       'maven.io_grpc_grpc_protobuf': "io.grpc:grpc-protobuf:${libraries['version.io_grpc']}",
       'maven.io_grpc_grpc_netty_shaded': "io.grpc:grpc-netty-shaded:${libraries['version.io_grpc']}",
       'maven.io_grpc_grpc_alts': "io.grpc:grpc-alts:${libraries['version.io_grpc']}",
-      'maven.io_grpc_grpc_rls': "io.grpc:grpc-rls:${libraries['version.io_grpc']}",
     ])
   }
 
@@ -177,8 +176,11 @@ subprojects {
 
   javadoc.options {
     encoding = 'UTF-8'
-    //links 'https://docs.oracle.com/javase/7/docs/api/'
-    addStringOption('Xdoclint:all,-missing', '-quiet')
+    links 'https://docs.oracle.com/javase/7/docs/api/'
+
+    if (JavaVersion.current().isJava8Compatible()) {
+      addStringOption('Xdoclint:all,-missing', '-quiet')
+    }
   }
 
   // Test jar
