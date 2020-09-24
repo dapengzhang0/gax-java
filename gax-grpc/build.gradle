@@ -1,7 +1,7 @@
 archivesBaseName = "gax-grpc"
 
 // TODO: Populate this from dependencies.properties version property (for proper Gradle-Bazel sync)
-project.version = "1.58.4-SNAPSHOT" // {x-version-update:gax-grpc:current}
+project.version = "1.99.0-SNAPSHOT" // {x-version-update:gax-grpc:current}
 
 dependencies {
   compile project(':gax'),
@@ -16,7 +16,8 @@ dependencies {
     libraries['maven.com_google_api_grpc_proto_google_common_protos'],
     libraries['maven.com_google_api_api_common'],
     libraries['maven.io_grpc_grpc_netty_shaded'],
-    libraries['maven.io_grpc_grpc_alts']
+    libraries['maven.io_grpc_grpc_alts'],
+    libraries['maven.io_grpc_grpc_rls']
 
   compileOnly libraries['maven.com_google_auto_value_auto_value']
 

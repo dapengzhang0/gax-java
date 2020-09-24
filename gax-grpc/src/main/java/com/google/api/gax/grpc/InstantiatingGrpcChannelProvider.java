@@ -47,6 +47,7 @@ import com.google.common.collect.ImmutableMap;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.alts.ComputeEngineChannelBuilder;
+import io.grpc.internal.JsonParser;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.Executor;
@@ -279,6 +280,10 @@ public final class InstantiatingGrpcChannelProvider implements TransportChannelP
     } else {
       builder = ManagedChannelBuilder.forAddress(serviceAddress, port);
     }
+    if (isDirectPathEnabled(serviceAddress)
+        && !serviceAddress.toLowerCase().contains("tableadmin")) {
+      builder.defaultServiceConfig(getRlsServiceConfig());
+    }
     builder =
         builder
             // See https://github.com/googleapis/gapic-generator/issues/2816
@@ -316,6 +321,56 @@ public final class InstantiatingGrpcChannelProvider implements TransportChannelP
       channelPrimer.primeChannel(managedChannel);
     }
     return managedChannel;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Map<String, Object> getRlsServiceConfig() throws IOException {
+    String rlsConfigJson = getRlsConfigJsonStr();
+    String grpclbJson = "{\"grpclb\": {\"childPolicy\": [{\"pick_first\": {}}]}}";
+    String serviceConfig = "{"
+        + "\"loadBalancingConfig\": [{"
+        + "    \"rls-experimental\": {"
+        + "      \"routeLookupConfig\": " + rlsConfigJson + ", "
+        + "      \"childPolicy\": [" + grpclbJson + "],"
+        + "      \"childPolicyConfigTargetFieldName\": \"serviceName\""
+        + "      }"
+        + "  }]"
+        + "}";
+    return (Map<String, Object>) JsonParser.parse(serviceConfig);
+  }
+
+  private static String getRlsConfigJsonStr() {
+    return "{\n"
+        + "  \"grpcKeyBuilders\": [\n"
+        + "    {\n"
+        + "      \"names\": [\n"
+        + "        {\n"
+        + "          \"service\": \"google.bigtable.v2.Bigtable\"\n"
+        + "        }\n"
+        + "      ],\n"
+        + "      \"headers\": [\n"
+        + "        {\n"
+        + "          \"key\": \"x-goog-request-params\","
+        + "          \"names\": [\"x-goog-request-params\"],\n"
+        + "          \"optional\": true\n"
+        + "        },\n"
+        + "        {\n"
+        + "          \"key\": \"google-cloud-resource-prefix\","
+        + "          \"names\": [\"google-cloud-resource-prefix\"],\n"
+        + "          \"optional\": true\n"
+        + "        }\n"
+        + "      ]\n"
+        + "    }\n"
+        + "  ],\n"
+        + "  \"lookupService\": \"test-bigtablerls.sandbox.googleapis.com\",\n"
+        + "  \"lookupServiceTimeout\": 2,\n"
+        + "  \"maxAge\": 300,\n"
+        + "  \"staleAge\": 240,\n"
+        + "  \"validTargets\": [\"test-bigtable.sandbox.googleapis.com\", \"testdirectpath-bigtable.sandbox.googleapis.com\"],"
+        + "  \"cacheSizeBytes\": 1000,\n"
+        + "  \"defaultTarget\": \"defaultTarget\",\n"
+        + "  \"requestProcessingStrategy\": \"SYNC_LOOKUP_DEFAULT_TARGET_ON_ERROR\"\n"
+        + "}";
   }
 
   /** The endpoint to be used for the channel. */

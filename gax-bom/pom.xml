@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.google.api</groupId>
   <artifactId>gax-bom</artifactId>
-  <version>1.58.4-SNAPSHOT</version><!-- {x-version-update:gax-bom:current} -->
+  <version>1.99.0-SNAPSHOT</version><!-- {x-version-update:gax-bom:current} -->
   <packaging>pom</packaging>
   <name>GAX (Google Api eXtensions) for Java</name>
   <description>Google Api eXtensions for Java</description>
