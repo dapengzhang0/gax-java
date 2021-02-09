@@ -289,9 +289,10 @@ public final class InstantiatingGrpcChannelProvider implements TransportChannelP
       builder.keepAliveTime(DIRECT_PATH_KEEP_ALIVE_TIME_SECONDS, TimeUnit.SECONDS);
       builder.keepAliveTimeout(DIRECT_PATH_KEEP_ALIVE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
       builder.defaultServiceConfig(directPathServiceConfig);
-      System.out.println("gax-java: is using directpath");
+      System.out.println("gax-java: " + serviceAddress + " is using directpath: "
+          + directPathServiceConfig);
     } else {
-      System.out.println("gax-java: not using directpath");
+      System.out.println("gax-java: " + serviceAddress + " is not using directpath");
       builder = ManagedChannelBuilder.forAddress(serviceAddress, port);
     }
     builder =
